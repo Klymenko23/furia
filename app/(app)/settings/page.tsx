@@ -52,7 +52,7 @@ function Firms() {
                   <span className="av" aria-hidden="true">{FIRM_KIND_NAME[f.kind]}</span>
                   <span className="li-main">
                     <span className="li-title">{f.name}{f.archived ? " · в архіві" : ""}</span>
-                    <span className="li-sub">{[TAX_MODE_NAME[f.tax_mode], f.fee_percent ? `відсоток за проведення ${f.fee_percent}%` : "", f.code && `код ${f.code}`, open === f.id ? "сховати документи" : "документи фірми"].filter(Boolean).join(" · ")}</span>
+                    <span className="li-sub">{[TAX_MODE_NAME[f.tax_mode], f.tax_percent ? `податок ${f.tax_percent}%` : "", f.fee_percent ? `відсоток за проведення ${f.fee_percent}%` : "", f.code && `код ${f.code}`, open === f.id ? "сховати документи" : "документи фірми"].filter(Boolean).join(" · ")}</span>
                   </span>
                 </button>
                 {isOwner && <button type="button" className="btn ghost sm" onClick={() => setEdit(f)}>Змінити</button>}
@@ -73,6 +73,7 @@ function FirmSheet({ firm, onClose }: { firm: Partial<Firm>; onClose: () => void
   const [kind, setKind] = useState<Firm["kind"]>(firm.kind ?? "fop");
   const [tax, setTax] = useState<Firm["tax_mode"]>(firm.tax_mode ?? "fop3");
   const [fee, setFee] = useState(firm.fee_percent ? String(firm.fee_percent) : "");
+  const [taxP, setTaxP] = useState(firm.tax_percent ? String(firm.tax_percent) : "");
   const [code, setCode] = useState(firm.code ?? "");
   const [iban, setIban] = useState(firm.iban ?? "");
   const [note, setNote] = useState(firm.note ?? "");
@@ -81,7 +82,7 @@ function FirmSheet({ firm, onClose }: { firm: Partial<Firm>; onClose: () => void
   async function save(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return setErr("Вкажіть назву.");
-    const row = { name: name.trim(), kind, tax_mode: tax, fee_percent: parseNum(fee) ?? 0, code: code.trim(), iban: iban.replace(/\s/g, "").toUpperCase(), note: note.trim() };
+    const row = { name: name.trim(), kind, tax_mode: tax, fee_percent: parseNum(fee) ?? 0, tax_percent: parseNum(taxP) ?? 0, code: code.trim(), iban: iban.replace(/\s/g, "").toUpperCase(), note: note.trim() };
     const { error } = firm.id ? await supabase.from("firms").update(row).eq("id", firm.id) : await supabase.from("firms").insert(row);
     if (error) return setErr(dbError(error));
     await reload(); onClose();
@@ -118,6 +119,9 @@ function FirmSheet({ firm, onClose }: { firm: Partial<Firm>; onClose: () => void
           </Field>
           <Field label="Відсоток за проведення, %" htmlFor="f-fee" hint="Якщо гроші проходять через чужу фірму. Віднімається з фрахту">
             <input id="f-fee" inputMode="decimal" placeholder="0" value={fee} onChange={(e) => setFee(e.target.value)} />
+          </Field>
+          <Field label="Податок з доходу, %" htmlFor="f-taxp" hint="ФОП 3 група: 5% без ПДВ або 3% з ПДВ. Уточніть у бухгалтера">
+            <input id="f-taxp" inputMode="decimal" placeholder="5" value={taxP} onChange={(e) => setTaxP(e.target.value)} />
           </Field>
           <Field label="ЄДРПОУ / ІПН" htmlFor="f-code"><input id="f-code" inputMode="numeric" value={code} onChange={(e) => setCode(e.target.value)} /></Field>
           <Field label="IBAN" htmlFor="f-iban" wide><input id="f-iban" autoCapitalize="characters" value={iban} onChange={(e) => setIban(e.target.value)} /></Field>

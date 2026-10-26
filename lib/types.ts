@@ -15,6 +15,7 @@ export type Firm = {
   kind: "fop" | "tov" | "pp" | "other";
   tax_mode: "fop3" | "vat" | "no_vat" | "other";
   fee_percent: number;
+  tax_percent: number;
   code: string;
   iban: string;
   note: string;
@@ -117,7 +118,7 @@ export type Client = {
 
 export type Stage = "request" | "loading" | "transit" | "customs" | "unloading" | "docs" | "invoiced" | "originals" | "awaiting" | "paid" | "cancelled";
 
-export type Stop = { kind: "load" | "unload"; place: string; country: string; date: string; address?: string; note?: string };
+export type Stop = { kind: "load" | "unload"; place: string; country: string; date: string; address?: string; note?: string; lat?: number; lon?: number };
 
 export type Trip = {
   id: string;
@@ -149,6 +150,9 @@ export type Trip = {
   driver_advance: number | null;
   driver_advance_currency: string;
   km: number | null;
+  route_line: [number, number][] | null;
+  fx_rate: number | null;
+  fx_date: string | null;
   docs_received_on: string | null;
   invoice_sent_on: string | null;
   tax_invoice_done: boolean;

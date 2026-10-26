@@ -6,6 +6,8 @@ import { useData } from "./DataProvider";
 import { ConfirmButton, Field, Sheet, dbError } from "./ui";
 import { COUNTRIES, CURRENCIES, PAYMENT_FORM_NAME } from "@/lib/constants";
 import { fmtPlate, parseNum, todayISO } from "@/lib/utils";
+import { PlaceSearch } from "./PlaceSearch";
+import { routeKm } from "@/app/(app)/trips/geo";
 import type { Stop, Trip } from "@/lib/types";
 
 const emptyStops = (): Stop[] => [
@@ -42,6 +44,7 @@ export function TripSheet({ trip, onClose }: { trip?: Trip; onClose: () => void 
   const [advance, setAdvance] = useState(trip?.driver_advance != null ? String(trip.driver_advance) : "");
   const [advanceCur, setAdvanceCur] = useState(trip?.driver_advance_currency ?? "UAH");
   const [note, setNote] = useState(trip?.note ?? "");
+  const [km, setKm] = useState(trip?.km != null ? String(trip.km) : "");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -95,7 +98,18 @@ export function TripSheet({ trip, onClose }: { trip?: Trip; onClose: () => void 
         clientId = data.id;
       }
     }
+    // Кілометри по дорогах, якщо всі точки обрані на карті і маршрут змінився
+    let kmVal = parseNum(km);
+    let routeLine = trip?.route_line ?? null;
+    const pts = cleanStops.map((s) => (s.lat != null && s.lon != null ? [s.lat, s.lon] as [number, number] : null));
+    const sameRoute = trip && JSON.stringify(trip.stops.map((s) => [s.lat, s.lon])) === JSON.stringify(cleanStops.map((s) => [s.lat, s.lon]));
+    if (pts.every(Boolean) && pts.length >= 2 && (!sameRoute || !routeLine)) {
+      const r = await routeKm(pts as [number, number][]);
+      if (r.km) { kmVal = r.km; routeLine = r.line ?? null; }
+    }
+    if (pts.some((p) => !p)) routeLine = null;
     const row = {
+      km: kmVal, route_line: routeLine,
       client_id: clientId, client_ref: clientRef.trim(),
       stops: cleanStops.map((s) => ({ ...s, place: s.place.trim() })),
       cargo: cargo.trim(), weight_t: parseNum(weight), pallets: pallets.trim(),
@@ -149,7 +163,9 @@ export function TripSheet({ trip, onClose }: { trip?: Trip; onClose: () => void 
                   <button type="button" aria-pressed={s.kind === "unload"} onClick={() => setStop(i, { kind: "unload" })}>Розвантаження</button>
                 </div>
                 <div className="stop-row">
-                  <input aria-label="Місто або село" placeholder="Місто, село" value={s.place} onChange={(e) => setStop(i, { place: e.target.value })} />
+                  <PlaceSearch value={s.place} hasPoint={s.lat != null}
+                    onText={(v) => setStop(i, { place: v, lat: undefined, lon: undefined })}
+                    onPick={(p) => setStop(i, { place: p.place, lat: p.lat, lon: p.lon, ...(COUNTRIES.some(([k]) => k === p.country) ? { country: p.country } : {}) })} />
                   <select aria-label="Країна" value={s.country} onChange={(e) => setStop(i, { country: e.target.value })}>
                     {COUNTRIES.map(([k, n]) => <option key={k} value={k}>{n}</option>)}
                   </select>
@@ -166,6 +182,9 @@ export function TripSheet({ trip, onClose }: { trip?: Trip; onClose: () => void 
         </Field>
 
         <div className="fields">
+          <Field label="Кілометри" htmlFor="t-km" hint={stops.every((x) => x.lat != null) ? "Порахуються по дорогах при збереженні" : "Оберіть точки на карті — порахую сам, або впишіть"}>
+            <input id="t-km" inputMode="numeric" value={km} onChange={(e) => setKm(e.target.value)} />
+          </Field>
           <Field label="Вантаж" htmlFor="t-cargo"><input id="t-cargo" placeholder="Запчастини, картопля…" value={cargo} onChange={(e) => setCargo(e.target.value)} /></Field>
           <Field label="Вага, т" htmlFor="t-w"><input id="t-w" inputMode="decimal" value={weight} onChange={(e) => setWeight(e.target.value)} /></Field>
           <Field label="Палети" htmlFor="t-pal"><input id="t-pal" placeholder="13 (1,2×1)" value={pallets} onChange={(e) => setPallets(e.target.value)} /></Field>

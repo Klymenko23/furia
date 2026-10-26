@@ -6,6 +6,7 @@ import { ConfirmButton, Field } from "./ui";
 import { disconnectWialon, saveWialonBase, saveWialonPassword, saveWialonToken, wialonStatus, wialonUnits, type WialonStatus } from "@/app/(app)/settings/wialon";
 import { loginUrl } from "@/lib/wialon";
 import type { WialonUnit } from "@/lib/wialon";
+import { findUnit } from "@/lib/gps";
 
 /** «щойно», «12 хв тому», «3 год тому», «2 дні тому» */
 export function ago(unix: number) {
@@ -174,11 +175,7 @@ export function LivePosition({ unitId }: { unitId: string }) {
     const r = await wialonUnits();
     setBusy(false);
     if (r.error) return setErr(r.error);
-    const q = unitId.trim().toLowerCase().replace(/\s+/g, "");
-    const norm = (n: string) => n.toLowerCase().replace(/\s+/g, "");
-    const found = r.units!.find((x) => x.id === unitId.trim())
-      ?? r.units!.find((x) => norm(x.name) === q)
-      ?? r.units!.find((x) => norm(x.name).includes(q) || q.includes(norm(x.name)));
+    const found = findUnit(r.units!, unitId);
     if (!found) {
       const names = r.units!.map((x) => x.name).slice(0, 10).join(", ");
       return setErr(r.units!.length

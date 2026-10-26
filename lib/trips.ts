@@ -57,6 +57,8 @@ export function driverPay(t: Trip, d: Driver | undefined, rates: DailyRate[]): D
   return { sums, lines };
 }
 
+export type UahBreakdown = { rate: number; gross: number; vat: number; tax: number; fee: number; net: number; taxPercent: number };
+
 export type TripMoney = {
   freight: Sums;
   fee: Sums;          // відсоток за проведення через фірму
@@ -64,22 +66,52 @@ export type TripMoney = {
   expenses: Sums;
   profit: Sums;
   feePercent: number;
+  /** Для безготівки: скільки гривень реально залишиться на рахунку після ПДВ, податку і відсотка */
+  uah: UahBreakdown | null;
 };
 
-/** Прибуток рейсу = фрахт − відсоток за проведення − зарплата водія − витрати рейсу. Податки не враховані. */
+const VAT = 0.2;
+
+/** Прибуток рейсу.
+ *  Безготівка з курсом: фрахт у гривнях − ПДВ (якщо рейс з ПДВ, фрахт вважається з ПДВ) − податок фірми − відсоток за проведення;
+ *  далі мінус водій і витрати (у валюті рейсу перераховуються за тим самим курсом).
+ *  Готівка: фрахт − водій − витрати, без податків. */
 export function tripMoney(t: Trip, firm: Firm | undefined, pay: DriverPay, expenses: Expense[]): TripMoney {
   const freight: Sums = {}, fee: Sums = {}, exp: Sums = {}, profit: Sums = {};
   const feePercent = Number(firm?.fee_percent ?? 0);
+  const taxPercent = Number(firm?.tax_percent ?? 0);
+  for (const e of expenses) addSum(exp, e.currency, Number(e.amount));
+  const rate = t.currency === "UAH" ? 1 : t.fx_rate != null ? Number(t.fx_rate) : null;
+  const bank = t.payment_form !== "cash";
+  let uah: UahBreakdown | null = null;
+
   if (t.freight != null) {
     addSum(freight, t.currency, Number(t.freight));
-    if (feePercent && t.payment_form !== "cash") addSum(fee, t.currency, (Number(t.freight) * feePercent) / 100);
+    if (bank && rate) {
+      const gross = Number(t.freight) * rate;
+      const vat = t.vat ? (gross * VAT) / (1 + VAT) : 0;
+      const tax = ((gross - vat) * taxPercent) / 100;
+      const f = (gross * feePercent) / 100;
+      const r2 = (n: number) => Math.round(n * 100) / 100;
+      uah = { rate, gross: r2(gross), vat: r2(vat), tax: r2(tax), fee: r2(f), net: r2(gross - vat - tax - f), taxPercent };
+      addSum(fee, "UAH", uah.fee);
+      addSum(profit, "UAH", uah.net);
+    } else {
+      if (bank && feePercent) addSum(fee, t.currency, (Number(t.freight) * feePercent) / 100);
+      addSum(profit, t.currency, Number(t.freight));
+      for (const [c, v] of Object.entries(fee)) addSum(profit, c, -v);
+    }
   }
-  for (const e of expenses) addSum(exp, e.currency, Number(e.amount));
-  for (const [c, v] of Object.entries(freight)) addSum(profit, c, v);
-  for (const [c, v] of Object.entries(fee)) addSum(profit, c, -v);
-  for (const [c, v] of Object.entries(pay.sums)) addSum(profit, c, -v);
-  for (const [c, v] of Object.entries(exp)) addSum(profit, c, -v);
-  return { freight, fee, driver: pay.sums, expenses: exp, profit, feePercent };
+  // Водій і витрати: у валюті рейсу — у гривні за тим самим курсом, якщо рахуємо в гривнях
+  const minus = (s: Sums) => {
+    for (const [c, v] of Object.entries(s)) {
+      if (uah && c === t.currency) addSum(profit, "UAH", -v * uah.rate);
+      else addSum(profit, c, -v);
+    }
+  };
+  minus(pay.sums);
+  minus(exp);
+  return { freight, fee, driver: pay.sums, expenses: exp, profit, feePercent, uah };
 }
 
 /** Строк оплати: дата отримання оригіналів (або відправки, якщо невідома) + відстрочка */

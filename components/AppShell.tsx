@@ -11,6 +11,7 @@ import { dueState, initials } from "@/lib/utils";
 const TABS: [string, string][] = [
   ["/", "Огляд"],
   ["/trips", "Рейси"],
+  ["/map", "Карта"],
   ["/fleet", "Автопарк"],
   ["/drivers", "Водії"],
   ["/expenses", "Витрати"],
