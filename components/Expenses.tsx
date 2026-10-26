@@ -7,7 +7,7 @@ import { catIcon, catLabel, PAID_BY_NAME } from "@/lib/constants";
 import { fmtDate, money, moneyMulti } from "@/lib/utils";
 import type { Expense } from "@/lib/types";
 
-export type ExpenseFilter = { from?: string; to?: string; vehicle_id?: string; driver_id?: string; category?: string; limit?: number };
+export type ExpenseFilter = { from?: string; to?: string; vehicle_id?: string; driver_id?: string; trip_id?: string; category?: string; limit?: number };
 
 /** Завантажує витрати за фільтром і перечитує після кожного збереження */
 export function useExpenses(f: ExpenseFilter) {
@@ -21,6 +21,7 @@ export function useExpenses(f: ExpenseFilter) {
     if (f.to) q = q.lte("spent_on", f.to);
     if (f.vehicle_id) q = q.eq("vehicle_id", f.vehicle_id);
     if (f.driver_id) q = q.eq("driver_id", f.driver_id);
+    if (f.trip_id) q = q.eq("trip_id", f.trip_id);
     if (f.category) q = q.eq("category", f.category);
     q.limit(f.limit ?? 1000).then(({ data }) => { if (!off) setRows((data as Expense[]) ?? []); });
     return () => { off = true; };

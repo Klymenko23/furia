@@ -1,4 +1,4 @@
-import type { PaidBy, PayScheme, Role, VehicleKind, VehicleStatus } from "./types";
+import type { PaidBy, PayScheme, Role, Stage, VehicleKind, VehicleStatus } from "./types";
 
 export const ROLE_NAME: Record<Role, string> = {
   owner: "Власник",
@@ -95,3 +95,32 @@ export const PAID_BY_NAME: Record<PaidBy, string> = {
 /** За скільки днів попереджати про кінець терміну */
 export const WARN_DAYS = 30;
 export const URGENT_DAYS = 7;
+
+
+/** Етапи рейсу по порядку */
+export const STAGES: { key: Stage; label: string; short: string }[] = [
+  { key: "request", label: "Заявка", short: "Заявка" },
+  { key: "loading", label: "Завантаження", short: "Завант." },
+  { key: "transit", label: "В дорозі", short: "В дорозі" },
+  { key: "customs", label: "Митниця", short: "Митниця" },
+  { key: "unloading", label: "Розвантаження", short: "Розвант." },
+  { key: "docs", label: "Документи від водія", short: "Документи" },
+  { key: "invoiced", label: "Рахунок і акт надіслано", short: "Рахунок" },
+  { key: "originals", label: "Оригінали відправлено", short: "Оригінали" },
+  { key: "awaiting", label: "Чекаємо оплату", short: "Оплата" },
+  { key: "paid", label: "Оплачено", short: "Оплачено" },
+];
+export const stageLabel = (s: Stage) => (s === "cancelled" ? "Скасовано" : STAGES.find((x) => x.key === s)?.label ?? s);
+export const stageIndex = (s: Stage) => STAGES.findIndex((x) => x.key === s);
+
+export const PAYMENT_FORM_NAME = { bank: "Безготівка", cash: "Готівка", card: "На картку" } as const;
+
+export const CLIENT_CHANNELS = ["Viber", "Telegram", "Телефон", "Пошта", "Della", "Lardi-Trans", "Інше"];
+
+/** Країни для маршруту й добових */
+export const COUNTRIES: [string, string][] = [
+  ["UA", "Україна"], ["PL", "Польща"], ["DE", "Німеччина"], ["CZ", "Чехія"], ["SK", "Словаччина"], ["HU", "Угорщина"],
+  ["RO", "Румунія"], ["MD", "Молдова"], ["LT", "Литва"], ["LV", "Латвія"], ["EE", "Естонія"], ["AT", "Австрія"],
+  ["NL", "Нідерланди"], ["BE", "Бельгія"], ["FR", "Франція"], ["IT", "Італія"], ["ES", "Іспанія"], ["BG", "Болгарія"], ["TR", "Туреччина"],
+];
+export const countryName = (c: string) => COUNTRIES.find(([k]) => k === c)?.[1] ?? c;

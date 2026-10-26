@@ -5,7 +5,7 @@ import { useData } from "@/components/DataProvider";
 import { DocList } from "@/components/Docs";
 import { WialonSettings } from "@/components/Wialon";
 import { ConfirmButton, Field, Sheet, dbError } from "@/components/ui";
-import { catLabel, CATEGORIES, CURRENCIES, FIRM_KIND_NAME, ROLE_NAME, TAX_MODE_NAME } from "@/lib/constants";
+import { catLabel, CATEGORIES, COUNTRIES, countryName, CURRENCIES, FIRM_KIND_NAME, ROLE_NAME, TAX_MODE_NAME } from "@/lib/constants";
 import { initials, money, parseNum } from "@/lib/utils";
 import type { DailyRate, Firm, Profile, Role, Supplier } from "@/lib/types";
 import { createUser, resetPassword, updateUser } from "./actions";
@@ -136,12 +136,6 @@ function FirmSheet({ firm, onClose }: { firm: Partial<Firm>; onClose: () => void
 }
 
 /* ---------- Добові по країнах ---------- */
-const COUNTRIES: [string, string][] = [
-  ["UA", "Україна"], ["PL", "Польща"], ["DE", "Німеччина"], ["CZ", "Чехія"], ["SK", "Словаччина"], ["HU", "Угорщина"],
-  ["RO", "Румунія"], ["MD", "Молдова"], ["LT", "Литва"], ["LV", "Латвія"], ["EE", "Естонія"], ["AT", "Австрія"],
-  ["NL", "Нідерланди"], ["BE", "Бельгія"], ["FR", "Франція"], ["IT", "Італія"], ["ES", "Іспанія"], ["BG", "Болгарія"], ["TR", "Туреччина"],
-];
-const countryName = (c: string) => COUNTRIES.find(([k]) => k === c)?.[1] ?? c;
 
 function DailyRates() {
   const { supabase, isOwner } = useData();

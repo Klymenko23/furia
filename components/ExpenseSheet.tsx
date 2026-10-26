@@ -5,13 +5,14 @@ import { useData } from "./DataProvider";
 import { ConfirmButton, Field, Sheet, dbError } from "./ui";
 import { CATEGORIES, CURRENCIES, PAID_BY_NAME } from "@/lib/constants";
 import { fmtPlate, parseNum, todayISO } from "@/lib/utils";
+import { routeText } from "@/lib/trips";
 import type { Expense, PaidBy } from "@/lib/types";
 
 /** Поля, які можна підставити заздалегідь (напр. з картки машини), або вся витрата для редагування */
 export type ExpenseDraft = Partial<Expense>;
 
 export function ExpenseSheet({ draft, onClose, onSaved }: { draft: ExpenseDraft; onClose: () => void; onSaved: () => void }) {
-  const { supabase, vehicles, drivers, suppliers } = useData();
+  const { supabase, vehicles, drivers, suppliers, trips } = useData();
   const editing = !!draft.id;
   const [cat, setCat] = useState(draft.category ?? "");
   const [amount, setAmount] = useState(draft.amount != null ? String(draft.amount) : "");
@@ -19,6 +20,7 @@ export function ExpenseSheet({ draft, onClose, onSaved }: { draft: ExpenseDraft;
   const [date, setDate] = useState(draft.spent_on ?? todayISO());
   const [vehicleId, setVehicleId] = useState(draft.vehicle_id ?? "");
   const [driverId, setDriverId] = useState(draft.driver_id ?? "");
+  const [tripId, setTripId] = useState(draft.trip_id ?? "");
   const [supplierText, setSupplierText] = useState(suppliers.find((s) => s.id === draft.supplier_id)?.name ?? "");
   const [paidBy, setPaidBy] = useState<PaidBy>(draft.paid_by ?? "firm");
   const [mileage, setMileage] = useState(draft.mileage != null ? String(draft.mileage) : "");
@@ -36,6 +38,15 @@ export function ExpenseSheet({ draft, onClose, onSaved }: { draft: ExpenseDraft;
     const d = drivers.find((x) => x.id === id);
     if (d?.default_tractor_id && !vehicleId) setVehicleId(d.default_tractor_id);
   }
+  // Обрали рейс — підставляємо його тягач і водія
+  function pickTrip(id: string) {
+    setTripId(id);
+    const t = trips.find((x) => x.id === id);
+    if (t?.tractor_id) setVehicleId(t.tractor_id);
+    if (t?.driver_id) setDriverId(t.driver_id);
+  }
+  const tripOptions = trips.filter((t) => t.id === tripId || !["paid", "cancelled"].includes(t.stage)).slice(0, 40);
+
   // Постачальник зі списку — підказуємо його звичну категорію
   function pickSupplier(name: string) {
     setSupplierText(name);
@@ -66,7 +77,7 @@ export function ExpenseSheet({ draft, onClose, onSaved }: { draft: ExpenseDraft;
 
     const row = {
       category: cat, amount: sum, currency, spent_on: date,
-      vehicle_id: vehicleId || null, driver_id: driverId || null, supplier_id: supplierId,
+      vehicle_id: vehicleId || null, driver_id: driverId || null, trip_id: tripId || null, supplier_id: supplierId,
       paid_by: paidBy, mileage: category?.mileage ? parseNum(mileage) : null, note: note.trim(),
     };
     const { error } = editing
@@ -108,6 +119,14 @@ export function ExpenseSheet({ draft, onClose, onSaved }: { draft: ExpenseDraft;
           <Field label="Дата" htmlFor="ex-date">
             <input id="ex-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
           </Field>
+          {tripOptions.length > 0 && (
+            <Field label="Рейс" htmlFor="ex-trip" wide hint="Витрата піде в прибуток цього рейсу">
+              <select id="ex-trip" value={tripId} onChange={(e) => pickTrip(e.target.value)}>
+                <option value="">— без рейсу —</option>
+                {tripOptions.map((t) => <option key={t.id} value={t.id}>№{t.number} · {routeText(t)}</option>)}
+              </select>
+            </Field>
+          )}
           <Field label="Машина" htmlFor="ex-veh">
             <select id="ex-veh" value={vehicleId} onChange={(e) => setVehicleId(e.target.value)}>
               <option value="">— без машини —</option>

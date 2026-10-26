@@ -8,12 +8,15 @@ import { ExpenseRows, sumByCurrency, useExpenses } from "@/components/Expenses";
 import { Plate, StatusBadge } from "@/components/ui";
 import { VehicleSheet } from "@/components/VehicleSheet";
 import { LivePosition } from "@/components/Wialon";
+import { StageBadge } from "@/components/TripBits";
+import { driverPay, routeText, tripDates, tripMoney } from "@/lib/trips";
+import { hasNegative, mergeSums, type Sums } from "@/lib/sums";
 import { catLabel, KIND_NAME } from "@/lib/constants";
 import { fmtPlate, monthStart, money, moneyMulti, vehicleTitle } from "@/lib/utils";
 
 export default function VehiclePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
-  const { vehicles, drivers, firms, canEdit, loaded, addExpense } = useData();
+  const { vehicles, drivers, firms, trips, rates, canEdit, loaded, addExpense } = useData();
   const [edit, setEdit] = useState(false);
   const v = vehicles.find((x) => x.id === id);
   const all = useExpenses({ vehicle_id: id });
@@ -67,6 +70,37 @@ export default function VehiclePage({ params }: { params: Promise<{ id: string }
       </div>
 
       {v.kind === "tractor" && v.wialon_unit && <LivePosition unitId={v.wialon_unit} />}
+
+      {(() => {
+        const mine = trips.filter((t) => t.stage !== "cancelled" && (t.tractor_id === v.id || t.trailer_id === v.id));
+        if (!mine.length) return null;
+        const ms = monthStart(now.getFullYear(), now.getMonth());
+        const profitOf = (t: (typeof mine)[number]) => tripMoney(t, firms.find((f) => f.id === t.firm_id), driverPay(t, drivers.find((d) => d.id === t.driver_id), rates), (all ?? []).filter((e) => e.trip_id === t.id)).profit;
+        const monthTrips = mine.filter((t) => (tripDates(t).end ?? "") >= ms);
+        // Прибуток машини за місяць: прибуток рейсів мінус витрати машини поза рейсами (колеса, ремонт, страховки)
+        const offTrip: Sums = {};
+        for (const e of month.filter((e) => !e.trip_id)) offTrip[e.currency] = (offTrip[e.currency] ?? 0) - Number(e.amount);
+        const monthProfit = mergeSums(...monthTrips.map(profitOf), offTrip);
+        return (
+          <section className="card" aria-labelledby="h-trips">
+            <div className="sec-head">
+              <h2 className="sec" id="h-trips">Рейси</h2>
+              {v.kind === "tractor" && <span className="small muted">прибуток цього місяця: <b className={hasNegative(monthProfit) ? "neg" : "pos"}>{moneyMulti(monthProfit)}</b></span>}
+            </div>
+            <div className="list">
+              {mine.slice(0, 20).map((t) => {
+                const p = profitOf(t);
+                return (
+                  <Link key={t.id} href={`/trips/${t.id}`} className="li">
+                    <div className="li-main"><span className="li-title">№{t.number} · {routeText(t)}</span><span className="li-sub">{t.freight != null ? money(t.freight, t.currency) : ""}</span></div>
+                    <div className="li-end"><b className={hasNegative(p) ? "neg" : "pos"}>{moneyMulti(p)}</b><StageBadge stage={t.stage} /></div>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       <section className="card" aria-labelledby="h-exp">
         <div className="sec-head">

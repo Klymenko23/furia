@@ -5,10 +5,17 @@ import { useData } from "@/components/DataProvider";
 import { ExpenseRows, sumByCurrency, useExpenses } from "@/components/Expenses";
 import { DueBadge, Plate, StatusBadge } from "@/components/ui";
 import { docLabel, WARN_DAYS } from "@/lib/constants";
-import { daysUntil, monthStart, moneyMulti, vehicleTitle } from "@/lib/utils";
+import { daysUntil, monthStart, moneyMulti, nDays, vehicleTitle } from "@/lib/utils";
+import { StageBadge } from "@/components/TripBits";
+import { addSum, type Sums } from "@/lib/sums";
+import { overdueDays, routeText } from "@/lib/trips";
 
 export default function Overview() {
-  const { me, vehicles, drivers, firms, docs, loaded } = useData();
+  const { me, vehicles, drivers, firms, docs, trips, clients, loaded } = useData();
+  const activeTrips = trips.filter((t) => ["request", "loading", "transit", "customs", "unloading", "docs"].includes(t.stage));
+  const waiting: Sums = {};
+  for (const t of trips) if (["invoiced", "originals", "awaiting"].includes(t.stage) && t.freight != null) addSum(waiting, t.currency, Number(t.freight) - Number(t.paid_amount ?? 0));
+  const overdue = trips.filter((t) => overdueDays(t) > 0);
   const now = new Date();
   const month = useExpenses({ from: monthStart(now.getFullYear(), now.getMonth()) });
 
@@ -47,6 +54,16 @@ export default function Overview() {
           <span className="v">{soon.length}</span>
           <span className="s">{late ? `з них прострочено: ${late}` : `найближчі ${WARN_DAYS} днів`}</span>
         </Link>
+        <Link href="/trips" className="stat">
+          <span className="k">Рейси в роботі</span>
+          <span className="v">{activeTrips.length}</span>
+          <span className="s">від заявки до документів</span>
+        </Link>
+        <Link href="/trips" className={`stat ${overdue.length ? "alert" : ""}`}>
+          <span className="k">Нам винні</span>
+          <span className="v">{moneyMulti(waiting)}</span>
+          <span className="s">{overdue.length ? `прострочено рейсів: ${overdue.length}` : "строки оплати в нормі"}</span>
+        </Link>
         <Link href="/expenses" className="stat">
           <span className="k">Витрати цього місяця</span>
           <span className="v">{month ? moneyMulti(sumByCurrency(month)) : "…"}</span>
@@ -58,6 +75,29 @@ export default function Overview() {
           <span className="s">тягачів і причепів</span>
         </Link>
       </div>
+
+      {(activeTrips.length > 0 || overdue.length > 0) && (
+        <section className="card" aria-labelledby="h-trips">
+          <div className="sec-head">
+            <h2 className="sec" id="h-trips">Рейси зараз</h2>
+            <Link href="/trips" className="btn ghost sm">Усі рейси</Link>
+          </div>
+          <div className="list">
+            {[...overdue, ...activeTrips.filter((t) => !overdue.includes(t))].slice(0, 8).map((t) => {
+              const od = overdueDays(t);
+              return (
+                <Link key={t.id} href={`/trips/${t.id}`} className="li">
+                  <div className="li-main">
+                    <span className="li-title">№{t.number} · {routeText(t)}</span>
+                    <span className="li-sub">{clients.find((c) => c.id === t.client_id)?.name ?? ""}</span>
+                  </div>
+                  <div className="li-end">{od > 0 ? <span className="badge late">оплата −{nDays(od)}</span> : <StageBadge stage={t.stage} />}</div>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="cols">
         <section className="card" id="terms" aria-labelledby="h-terms">

@@ -103,3 +103,61 @@ export type Expense = {
 };
 
 export type DailyRate = { country: string; amount: number; currency: string };
+
+export type Client = {
+  id: string;
+  name: string;
+  contact: string;
+  phone: string;
+  channel: string;
+  directions: string;
+  payment_days: number | null;
+  note: string;
+};
+
+export type Stage = "request" | "loading" | "transit" | "customs" | "unloading" | "docs" | "invoiced" | "originals" | "awaiting" | "paid" | "cancelled";
+
+export type Stop = { kind: "load" | "unload"; place: string; country: string; date: string; address?: string; note?: string };
+
+export type Trip = {
+  id: string;
+  number: number;
+  client_id: string | null;
+  client_ref: string;
+  stage: Stage;
+  stops: Stop[];
+  cargo: string;
+  weight_t: number | null;
+  pallets: string;
+  customs_export: string;
+  customs_import: string;
+  border: string;
+  via_poland: boolean;
+  rmpd_number: string;
+  tractor_id: string | null;
+  trailer_id: string | null;
+  driver_id: string | null;
+  freight: number | null;
+  currency: string;
+  firm_id: string | null;
+  payment_form: "bank" | "cash" | "card";
+  vat: boolean;
+  payment_days: number | null;
+  driver_pay: number | null;
+  driver_pay_currency: string;
+  daily_country: string;
+  driver_advance: number | null;
+  driver_advance_currency: string;
+  km: number | null;
+  docs_received_on: string | null;
+  invoice_sent_on: string | null;
+  tax_invoice_done: boolean;
+  originals_sent_on: string | null;
+  originals_tracking: string;
+  originals_received_on: string | null;
+  paid_on: string | null;
+  paid_amount: number | null;
+  note: string;
+  created_at: string;
+  updated_at: string;
+};
