@@ -174,8 +174,17 @@ export function LivePosition({ unitId }: { unitId: string }) {
     const r = await wialonUnits();
     setBusy(false);
     if (r.error) return setErr(r.error);
-    const found = r.units!.find((x) => x.id === unitId || x.name === unitId);
-    if (!found) return setErr("Обʼєкт не знайдено у Wialon. Перевірте привʼязку в картці.");
+    const q = unitId.trim().toLowerCase().replace(/\s+/g, "");
+    const norm = (n: string) => n.toLowerCase().replace(/\s+/g, "");
+    const found = r.units!.find((x) => x.id === unitId.trim())
+      ?? r.units!.find((x) => norm(x.name) === q)
+      ?? r.units!.find((x) => norm(x.name).includes(q) || q.includes(norm(x.name)));
+    if (!found) {
+      const names = r.units!.map((x) => x.name).slice(0, 10).join(", ");
+      return setErr(r.units!.length
+        ? `Обʼєкт «${unitId}» не знайдено. У Wialon є: ${names}. Оберіть потрібний у «Редагувати».`
+        : "Wialon підключено, але гостьовий запис не бачить жодної машини. Попросіть дилера дати йому доступ до вашого DAF.");
+    }
     setErr(""); setU(found);
   }
   useEffect(() => { load(); }, [unitId]);
