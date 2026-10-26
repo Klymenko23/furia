@@ -12,12 +12,14 @@ export type WialonUnit = {
 const ERRORS: Record<number, string> = {
   1: "Сесія Wialon недійсна. Спробуйте ще раз.",
   4: "Wialon не прийняв запит.",
-  7: "У цього токена немає прав на перегляд обʼєктів.",
+  7: "Wialon відмовив у доступі.",
   8: "Токен недійсний або відкликаний. Підключіть Wialon заново.",
   1003: "Wialon тимчасово обмежив запити. Спробуйте за хвилину.",
 };
 
-export class WialonError extends Error {}
+export class WialonError extends Error {
+  constructor(message: string, public code?: number, public svc?: string) { super(message); }
+}
 
 /** https://megagps.net/ → https://megagps.net */
 export function normBase(url: string) {
@@ -46,7 +48,10 @@ async function call<T>(base: string, svc: string, params: object, sid?: string):
   let data: unknown;
   try { data = await res.json(); } catch { throw new WialonError("За цією адресою не знайдено API Wialon. Уточніть у дилера адресу сервера."); }
   const err = (data as { error?: number })?.error;
-  if (typeof err === "number" && err !== 0) throw new WialonError(ERRORS[err] ?? `Wialon повернув помилку ${err}.`);
+  if (typeof err === "number" && err !== 0) {
+    const step = svc === "core/login" || svc === "token/login" ? "вхід" : svc === "core/search_items" ? "список машин" : svc;
+    throw new WialonError(`${ERRORS[err] ?? `Wialon повернув помилку ${err}.`} (крок: ${step}, код ${err})`, err, svc);
+  }
   return data as T;
 }
 
@@ -90,10 +95,15 @@ export async function tokenFromPassword(baseUrl: string, login: string, password
 
 async function listUnits(base: string, sid: string): Promise<WialonUnit[]> {
   type Item = { id: number; nm: string; pos?: { x: number; y: number; s: number; t: number } | null };
-  const r = await call<{ items: Item[] }>(base, "core/search_items", {
+  const ask = (flags: number) => call<{ items: Item[] }>(base, "core/search_items", {
     spec: { itemsType: "avl_unit", propName: "sys_name", propValueMask: "*", sortType: "sys_name" },
-    force: 1, flags: 0x1 | 0x400, from: 0, to: 0,
+    force: 1, flags, from: 0, to: 0,
   }, sid);
+  let r: { items: Item[] };
+  // Якщо гостьовому запису не дозволено бачити останнє повідомлення, беремо хоча б список машин
+  try { r = await ask(0x1 | 0x400); } catch (e) {
+    if (e instanceof WialonError && e.code === 7) r = await ask(0x1); else throw e;
+  }
   return (r.items ?? []).map((it) => ({
     id: String(it.id), name: it.nm,
     lat: it.pos?.y ?? null, lon: it.pos?.x ?? null, speed: it.pos?.s ?? null, time: it.pos?.t ?? null,
