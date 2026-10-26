@@ -12,11 +12,18 @@ async function myRole() {
 }
 const isOffice = (r: string | null) => r === "owner" || r === "dispatcher" || r === "accountant";
 
+/** Зрозуміле пояснення помилки бази для налаштувань Wialon */
+function dbProblem(m: string) {
+  if (/does not exist|relation|schema cache|PGRST205|Could not find the table/i.test(m))
+    return "У базі ще немає таблиці для Wialon. Виконайте SQL з таблицею integrations (файл 0002_wialon.sql) у Supabase і оновіть сторінку.";
+  if (/api key|apikey|JWT|Unauthorized|invalid.*key/i.test(m))
+    return "Сервер не може увійти в базу: перевірте змінну SUPABASE_SERVICE_ROLE_KEY у Vercel (секретний ключ Supabase) і перезапустіть збірку.";
+  return "Помилка бази: " + m;
+}
+
 async function readRow() {
   const { data, error } = await createServiceClient().from("integrations").select("*").eq("key", "wialon").maybeSingle();
-  if (error) throw new WialonError(/does not exist|relation/i.test(error.message)
-    ? "У базі ще немає таблиці для Wialon. Виконайте файл 0002_wialon.sql у Supabase."
-    : "Не вдалося прочитати налаштування Wialon.");
+  if (error) throw new WialonError(dbProblem(error.message));
   return data as { base_url: string; token: string; user_name: string; updated_at: string } | null;
 }
 
@@ -39,7 +46,7 @@ export async function saveWialonBase(baseUrl: string) {
   if (!base) return { error: "Вкажіть адресу сервера Wialon." };
   const { error } = await createServiceClient().from("integrations")
     .upsert({ key: "wialon", base_url: base, updated_at: new Date().toISOString() }, { onConflict: "key" });
-  if (error) return { error: /does not exist|relation/i.test(error.message) ? "Спершу виконайте файл 0002_wialon.sql у Supabase." : "Не вдалося зберегти." };
+  if (error) return { error: dbProblem(error.message) };
   return { ok: true, base };
 }
 
