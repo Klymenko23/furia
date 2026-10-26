@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useData } from "./DataProvider";
 import { ConfirmButton, Field } from "./ui";
-import { disconnectWialon, saveWialonBase, saveWialonToken, wialonStatus, wialonUnits, type WialonStatus } from "@/app/(app)/settings/wialon";
+import { disconnectWialon, saveWialonBase, saveWialonPassword, saveWialonToken, wialonStatus, wialonUnits, type WialonStatus } from "@/app/(app)/settings/wialon";
 import { loginUrl } from "@/lib/wialon";
 import type { WialonUnit } from "@/lib/wialon";
 
@@ -23,6 +23,8 @@ export function WialonSettings() {
   const [base, setBase] = useState("https://megagps.net");
   const [manual, setManual] = useState(false);
   const [token, setToken] = useState("");
+  const [wLogin, setWLogin] = useState("");
+  const [wPass, setWPass] = useState("");
   const [msg, setMsg] = useState<{ ok?: boolean; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [units, setUnits] = useState<WialonUnit[] | null>(null);
@@ -47,6 +49,17 @@ export function WialonSettings() {
     setMsg({ ok: true, text: `Підключено. Знайдено обʼєктів: ${r.count}.` });
     load();
   }
+  async function savePassword(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true); setMsg(null);
+    const r = await saveWialonPassword(base, wLogin, wPass);
+    setBusy(false);
+    if (r.error) return setMsg({ text: r.error });
+    setWPass("");
+    setMsg({ ok: true, text: `Підключено. Знайдено обʼєктів: ${r.count}. ${r.viaToken ? "Пароль не збережено: Furia отримала власний токен." : "Сервер не дозволив створити токен, тому логін і пароль збережено в закритій частині бази."}` });
+    load();
+  }
+
   async function check() {
     setBusy(true); setMsg(null);
     const r = await wialonUnits();
@@ -82,13 +95,25 @@ export function WialonSettings() {
           <Field label="Адреса сервера Wialon" htmlFor="w-base" hint="Та, де ви входите в Wialon">
             <input id="w-base" inputMode="url" autoCapitalize="off" value={base} onChange={(e) => setBase(e.target.value)} />
           </Field>
-          <div className="row">
-            <button className="btn primary" onClick={login} disabled={busy}>{busy ? "Відкриваю…" : "Увійти через Wialon"}</button>
-            <button className="linkbtn" type="button" onClick={() => setManual(!manual)}>або вставити токен вручну</button>
-          </div>
+          <form className="fields" onSubmit={savePassword} autoComplete="off">
+            <Field label="Гостьовий логін" htmlFor="w-login">
+              <input id="w-login" autoCapitalize="off" autoComplete="off" value={wLogin} onChange={(e) => setWLogin(e.target.value)} />
+            </Field>
+            <Field label="Пароль" htmlFor="w-pass">
+              <input id="w-pass" type="password" autoComplete="new-password" value={wPass} onChange={(e) => setWPass(e.target.value)} />
+            </Field>
+            <div className="row field wide">
+              <button className="btn primary" type="submit" disabled={busy || !wLogin.trim() || !wPass}>{busy ? "Підключаю…" : "Підключити"}</button>
+            </div>
+          </form>
           <p className="muted small" style={{ margin: 0 }}>
-            Відкриється сторінка входу Wialon. Введіть там гостьовий логін і пароль: вони залишаться в Wialon, Furia отримає лише токен на перегляд.
+            Використовуйте лише гостьовий запис без права змінювати дані. Furia спробує отримати власний токен, щоб не зберігати пароль.
           </p>
+          <div className="row small">
+            <span className="muted">Інші способи:</span>
+            <button className="linkbtn" type="button" onClick={login} disabled={busy}>сторінка входу Wialon</button>
+            <button className="linkbtn" type="button" onClick={() => setManual(!manual)}>вставити токен</button>
+          </div>
           {manual && (
             <div className="row">
               <input aria-label="Токен Wialon" autoComplete="off" placeholder="Токен (72 символи)" value={token} onChange={(e) => setToken(e.target.value)} style={{ flex: "1 1 240px", width: "auto", fontFamily: "var(--f-mono)", fontSize: 13 }} />

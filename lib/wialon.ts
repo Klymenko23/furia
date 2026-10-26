@@ -50,25 +50,62 @@ async function call<T>(base: string, svc: string, params: object, sid?: string):
   return data as T;
 }
 
-/** Увійти за токеном, отримати обʼєкти з останньою позицією, вийти */
-export async function fetchUnits(baseUrl: string, token: string): Promise<{ user: string; units: WialonUnit[] }> {
+export type WialonAuth = { token?: string; login?: string; password?: string };
+
+type Session = { eid: string; user?: { nm?: string } };
+
+/** Вхід: за токеном, а якщо його немає — логіном і паролем */
+async function open(base: string, auth: WialonAuth): Promise<Session> {
+  if (auth.token) return call<Session>(base, "token/login", { token: auth.token, fl: 1 });
+  if (auth.login && auth.password) {
+    try {
+      return await call<Session>(base, "core/login", { user: auth.login, password: auth.password });
+    } catch (e) {
+      if (e instanceof WialonError && /помилку 8|недійсний/i.test(e.message)) throw new WialonError("Wialon не прийняв логін або пароль.");
+      throw e;
+    }
+  }
+  throw new WialonError("Wialon не підключено.");
+}
+
+/** Увійти логіном і паролем і одразу випустити токен лише на перегляд (щоб не зберігати пароль).
+ *  Повертає токен або null, якщо сервер не дозволяє створювати токени. */
+export async function tokenFromPassword(baseUrl: string, login: string, password: string): Promise<{ token: string | null; user: string; count: number }> {
   const base = normBase(baseUrl);
-  const login = await call<{ eid: string; user?: { nm?: string } }>(base, "token/login", { token, fl: 1 });
+  const s = await open(base, { login, password });
   try {
-    type Item = { id: number; nm: string; pos?: { x: number; y: number; s: number; t: number } | null };
-    const r = await call<{ items: Item[] }>(base, "core/search_items", {
-      spec: { itemsType: "avl_unit", propName: "sys_name", propValueMask: "*", sortType: "sys_name" },
-      force: 1, flags: 0x1 | 0x400, from: 0, to: 0,
-    }, login.eid);
-    const units = (r.items ?? []).map((it) => ({
-      id: String(it.id),
-      name: it.nm,
-      lat: it.pos?.y ?? null,
-      lon: it.pos?.x ?? null,
-      speed: it.pos?.s ?? null,
-      time: it.pos?.t ?? null,
-    }));
-    return { user: login.user?.nm ?? "", units };
+    let token: string | null = null;
+    try {
+      const t = await call<{ h?: string }>(base, "token/update", {
+        callMode: "create", app: "Furia", at: 0, dur: 0, fl: 0x100 | 0x200, p: "{}", items: [],
+      }, s.eid);
+      token = t.h ?? null;
+    } catch { token = null; }
+    const units = await listUnits(base, s.eid);
+    return { token, user: s.user?.nm ?? login, count: units.length };
+  } finally {
+    call(base, "core/logout", {}, s.eid).catch(() => null);
+  }
+}
+
+async function listUnits(base: string, sid: string): Promise<WialonUnit[]> {
+  type Item = { id: number; nm: string; pos?: { x: number; y: number; s: number; t: number } | null };
+  const r = await call<{ items: Item[] }>(base, "core/search_items", {
+    spec: { itemsType: "avl_unit", propName: "sys_name", propValueMask: "*", sortType: "sys_name" },
+    force: 1, flags: 0x1 | 0x400, from: 0, to: 0,
+  }, sid);
+  return (r.items ?? []).map((it) => ({
+    id: String(it.id), name: it.nm,
+    lat: it.pos?.y ?? null, lon: it.pos?.x ?? null, speed: it.pos?.s ?? null, time: it.pos?.t ?? null,
+  }));
+}
+
+/** Увійти, отримати обʼєкти з останньою позицією, вийти */
+export async function fetchUnits(baseUrl: string, auth: WialonAuth | string): Promise<{ user: string; units: WialonUnit[] }> {
+  const base = normBase(baseUrl);
+  const login = await open(base, typeof auth === "string" ? { token: auth } : auth);
+  try {
+    return { user: login.user?.nm ?? "", units: await listUnits(base, login.eid) };
   } finally {
     call(base, "core/logout", {}, login.eid).catch(() => null);
   }

@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient, createServiceClient } from "@/lib/supabase/server";
-import { fetchUnits, normBase, WialonError, type WialonUnit } from "@/lib/wialon";
+import { fetchUnits, normBase, tokenFromPassword, WialonError, type WialonUnit } from "@/lib/wialon";
 
 async function myRole() {
   const supabase = await createClient();
@@ -24,7 +24,7 @@ function dbProblem(m: string) {
 async function readRow() {
   const { data, error } = await createServiceClient().from("integrations").select("*").eq("key", "wialon").maybeSingle();
   if (error) throw new WialonError(dbProblem(error.message));
-  return data as { base_url: string; token: string; user_name: string; updated_at: string } | null;
+  return data as { base_url: string; token: string; login?: string; password?: string; user_name: string; updated_at: string } | null;
 }
 
 export type WialonStatus = { base_url: string; connected: boolean; user_name: string; updated_at: string | null; error?: string };
@@ -33,7 +33,7 @@ export async function wialonStatus(): Promise<WialonStatus> {
   if (!isOffice(await myRole())) return { base_url: "", connected: false, user_name: "", updated_at: null, error: "Немає доступу." };
   try {
     const r = await readRow();
-    return { base_url: r?.base_url ?? "", connected: !!r?.token, user_name: r?.user_name ?? "", updated_at: r?.updated_at ?? null };
+    return { base_url: r?.base_url ?? "", connected: !!(r?.token || (r?.login && r?.password)), user_name: r?.user_name ?? "", updated_at: r?.updated_at ?? null };
   } catch (e) {
     return { base_url: "", connected: false, user_name: "", updated_at: null, error: (e as Error).message };
   }
@@ -71,7 +71,7 @@ export async function saveWialonToken(token: string, userName = "") {
 
 export async function disconnectWialon() {
   if ((await myRole()) !== "owner") return { error: "Відключати Wialon може лише власник." };
-  await createServiceClient().from("integrations").update({ token: "", user_name: "" }).eq("key", "wialon");
+  await createServiceClient().from("integrations").update({ token: "", user_name: "", login: "", password: "" }).eq("key", "wialon");
   return { ok: true };
 }
 
@@ -80,9 +80,27 @@ export async function wialonUnits(): Promise<{ units?: WialonUnit[]; error?: str
   if (!isOffice(await myRole())) return { error: "Немає доступу." };
   try {
     const row = await readRow();
-    if (!row?.token) return { error: "Wialon не підключено." };
-    return { units: (await fetchUnits(row.base_url, row.token)).units };
+    if (!row?.token && !(row?.login && row?.password)) return { error: "Wialon не підключено." };
+    return { units: (await fetchUnits(row.base_url, { token: row.token, login: row.login, password: row.password })).units };
   } catch (e) {
     return { error: e instanceof WialonError ? e.message : "Не вдалося отримати дані з Wialon." };
+  }
+}
+
+/** Підключення логіном і паролем гостьового запису. Пароль зберігається, лише якщо сервер не дав створити токен. */
+export async function saveWialonPassword(baseUrl: string, login: string, password: string) {
+  if ((await myRole()) !== "owner") return { error: "Підключати Wialon може лише власник." };
+  const base = normBase(baseUrl);
+  if (!base || !login.trim() || !password) return { error: "Вкажіть адресу, логін і пароль." };
+  try {
+    const r = await tokenFromPassword(base, login.trim(), password);
+    const row = r.token
+      ? { key: "wialon", base_url: base, token: r.token, login: "", password: "", user_name: r.user, updated_at: new Date().toISOString() }
+      : { key: "wialon", base_url: base, token: "", login: login.trim(), password, user_name: r.user, updated_at: new Date().toISOString() };
+    const { error } = await createServiceClient().from("integrations").upsert(row, { onConflict: "key" });
+    if (error) return { error: dbProblem(error.message) };
+    return { ok: true, count: r.count, viaToken: !!r.token };
+  } catch (e) {
+    return { error: e instanceof WialonError ? e.message : "Не вдалося підключитися до Wialon." };
   }
 }
