@@ -1,0 +1,211 @@
+/* Furia — дизайн-токени.
+   Тема: data-theme="light" | "dark" на <html> (перемикач у меню); без атрибута — як у системі.
+   Палітра: графіт і жар — «фурія»: теплий сірий фон, помаранчевий акцент. */
+:root {
+  --bg: #f3f1ee; --surface: #ffffff; --surface2: #f8f6f3; --ink: #1c1a17; --muted: #6b655d; --line: #ddd7cf;
+  --brand: #d9480f; --brand-ink: #ffffff; --brand-soft: #fce5d8; --brand-deep: #8a2b06;
+  --red: #b42318; --red-soft: #fde4e1; --amber: #8a5a00; --amber-soft: #fff0cc;
+  --green: #1a7f37; --green-soft: #dcf2e3; --blue: #1f5f99; --blue-soft: #e1ecf8;
+  --plate-bg: #ffffff; --plate-ink: #1c1a17; --plate-band: #1f5f99;
+  --shadow: 0 8px 24px rgba(40, 20, 0, .16);
+  --f-display: var(--font-display), system-ui, sans-serif;
+  --f-body: var(--font-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: var(--font-mono), ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141210; --surface: #1d1a17; --surface2: #25211d; --ink: #eee9e3; --muted: #a89f94; --line: #3a342e;
+    --brand: #ff7a3d; --brand-ink: #1a0b03; --brand-soft: #3a2116; --brand-deep: #ffb48f;
+    --red: #ff8f84; --red-soft: #3a1f1d; --amber: #f2c462; --amber-soft: #352a12;
+    --green: #6fd48f; --green-soft: #1c3324; --blue: #8fbff0; --blue-soft: #1c2b3d;
+    --plate-bg: #eee9e3; --plate-ink: #141210; --plate-band: #2f6fb0;
+    --shadow: 0 10px 28px rgba(0, 0, 0, .45);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141210; --surface: #1d1a17; --surface2: #25211d; --ink: #eee9e3; --muted: #a89f94; --line: #3a342e;
+  --brand: #ff7a3d; --brand-ink: #1a0b03; --brand-soft: #3a2116; --brand-deep: #ffb48f;
+  --red: #ff8f84; --red-soft: #3a1f1d; --amber: #f2c462; --amber-soft: #352a12;
+  --green: #6fd48f; --green-soft: #1c3324; --blue: #8fbff0; --blue-soft: #1c2b3d;
+  --plate-bg: #eee9e3; --plate-ink: #141210; --plate-band: #2f6fb0;
+  --shadow: 0 10px 28px rgba(0, 0, 0, .45);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box }
+html, body { margin: 0 }
+body { overflow-x: clip; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.45 }
+a { color: inherit }
+h1, h2, h3 { margin: 0; text-wrap: balance }
+input[type="date"] { min-width: 0; max-width: 100%; display: block; -webkit-appearance: none; appearance: none; min-height: 42px }
+:focus-visible { outline: 3px solid var(--brand); outline-offset: 2px }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important } }
+
+/* ---------- Каркас ---------- */
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 110px }
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 12px 0 }
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg) }
+.brand { display: flex; align-items: center; justify-content: space-between; gap: 12px }
+.logo { display: flex; align-items: center; gap: 10px; font-family: var(--f-display); font-weight: 800; font-size: 20px; letter-spacing: -.01em; color: var(--ink); text-decoration: none }
+.mark { width: 32px; height: 32px; border-radius: 9px; background: var(--brand); color: var(--brand-ink); display: grid; place-items: center; flex: none }
+.me { position: relative; display: flex; align-items: center; gap: 8px }
+.av { width: 30px; height: 30px; border-radius: 50%; background: var(--brand-soft); color: var(--brand-deep); display: grid; place-items: center; font-size: 11px; font-weight: 700; flex: none }
+.av-btn { display: inline-flex; align-items: center; gap: 8px; background: none; border: 1px solid transparent; border-radius: 22px; padding: 3px 12px 3px 3px; font: inherit; font-size: 13px; color: var(--ink); cursor: pointer; min-height: 40px }
+.av-btn:hover, .av-btn[aria-expanded="true"] { background: var(--surface); border-color: var(--line) }
+.me-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 10; min-width: 240px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); padding: 14px; display: flex; flex-direction: column; gap: 10px }
+.me-menu .nm { font-weight: 700; font-size: 15px }
+.tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin-top: 12px; border-bottom: 1px solid var(--line) }
+.tabs::-webkit-scrollbar { display: none }
+.tabs a { flex: none; text-decoration: none; color: var(--muted); font-weight: 600; font-size: 14px; padding: 10px 12px 11px; border-bottom: 2.5px solid transparent; margin-bottom: -1px; white-space: nowrap }
+.tabs a:hover { color: var(--ink) }
+.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--brand) }
+.tabs .cnt { margin-left: 6px; background: var(--red); color: #fff; border-radius: 9px; font-size: 11px; padding: 1px 6px }
+main { padding-top: 20px; display: flex; flex-direction: column; gap: 20px }
+
+/* ---------- Заголовки сторінок ---------- */
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap }
+.page-head h1 { font-family: var(--f-display); font-weight: 800; font-size: 26px; letter-spacing: -.015em }
+.page-head p { margin: 4px 0 0; color: var(--muted) }
+.back { color: var(--muted); text-decoration: none; font-size: 14px; display: inline-flex; gap: 6px; align-items: center; min-height: 32px }
+.back:hover { color: var(--ink) }
+h2.sec { font-family: var(--f-display); font-weight: 700; font-size: 17px; letter-spacing: -.01em }
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap }
+.muted { color: var(--muted) }
+.small { font-size: 13px }
+
+/* ---------- Кнопки й поля ---------- */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 42px; padding: 0 16px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 600; font-size: 14px; cursor: pointer; text-decoration: none; white-space: nowrap }
+.btn:hover { border-color: var(--muted) }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink) }
+.btn.primary:hover { filter: brightness(1.06) }
+.btn.ghost { background: transparent }
+.btn.danger { color: var(--red); border-color: var(--red-soft); background: var(--red-soft) }
+.btn.sm { min-height: 34px; padding: 0 12px; font-size: 13px }
+.btn:disabled { opacity: .55; cursor: default }
+.linkbtn { background: none; border: 0; padding: 0; color: var(--brand-deep); font: inherit; font-weight: 600; cursor: pointer; text-decoration: underline; text-underline-offset: 3px }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap }
+.row.end { justify-content: flex-end }
+.form { display: flex; flex-direction: column; gap: 14px }
+.fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px }
+.field { display: flex; flex-direction: column; gap: 5px; min-width: 0 }
+.field.wide { grid-column: 1 / -1 }
+.field > label, .field > .lbl { font-size: 12.5px; font-weight: 600; color: var(--muted) }
+.field .hint { font-size: 12px; color: var(--muted) }
+input, select, textarea { font: inherit; font-size: 15px; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; min-height: 42px; width: 100%; min-width: 0 }
+textarea { min-height: 80px; resize: vertical }
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--brand); outline-offset: 0; border-color: var(--brand) }
+.money-in { display: grid; grid-template-columns: minmax(0, 1fr) 92px; gap: 6px }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--surface2); border: 1px solid var(--line); border-radius: 10px; padding: 3px }
+.seg button { border: 0; background: none; border-radius: 7px; padding: 0 12px; min-height: 34px; font: inherit; font-size: 13.5px; font-weight: 600; color: var(--muted); cursor: pointer }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .14) }
+.error { background: var(--red-soft); color: var(--red); border-radius: 9px; padding: 10px 12px; font-size: 14px; font-weight: 600 }
+.note { background: var(--surface2); border: 1px dashed var(--line); border-radius: 10px; padding: 12px 14px; color: var(--muted); font-size: 14px }
+
+/* ---------- Картки й списки ---------- */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: flex; flex-direction: column; gap: 14px; min-width: 0 }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; align-items: start }
+.list { display: flex; flex-direction: column }
+.li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); text-decoration: none; color: inherit; min-width: 0 }
+.li:first-child { border-top: 0; padding-top: 0 }
+.li:last-child { padding-bottom: 0 }
+a.li:hover .li-title, button.li:hover .li-title { color: var(--brand-deep) }
+button.li { background: none; border: 0; border-top: 1px solid var(--line); font: inherit; text-align: left; cursor: pointer; width: 100%; color: inherit }
+button.li:first-child { border-top: 0 }
+button.li:disabled { cursor: default; opacity: 1 }
+.li-btn { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; background: none; border: 0; padding: 0; font: inherit; color: inherit; text-align: left; cursor: pointer }
+.li-btn:hover .li-title { color: var(--brand-deep) }
+.li-ico { font-size: 20px; width: 28px; text-align: center; flex: none }
+.li-end b { font-variant-numeric: tabular-nums; white-space: nowrap }
+.li-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px }
+.li-title { font-weight: 700; overflow-wrap: anywhere }
+.li-sub { font-size: 13px; color: var(--muted); overflow-wrap: anywhere }
+.li-end { flex: none; text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 4px }
+.empty { text-align: center; color: var(--muted); padding: 22px 10px; display: flex; flex-direction: column; gap: 10px; align-items: center }
+.kv { display: grid; grid-template-columns: minmax(110px, 38%) minmax(0, 1fr); gap: 8px 14px; font-size: 14px }
+.kv dt { color: var(--muted) }
+.kv dd { margin: 0; font-weight: 600; overflow-wrap: anywhere }
+
+/* Номерний знак */
+.plate { display: inline-flex; align-items: stretch; border: 1.5px solid var(--plate-ink); border-radius: 5px; background: var(--plate-bg); color: var(--plate-ink); font-family: var(--f-mono); font-weight: 700; font-size: 13px; line-height: 1; overflow: hidden; white-space: nowrap; flex: none }
+.plate::before { content: "UA"; background: var(--plate-band); color: #fff; font-size: 8px; padding: 0 3px; display: grid; place-items: end center; padding-bottom: 3px; letter-spacing: .02em }
+.plate span { padding: 5px 7px 4px }
+.plate.lg { font-size: 18px }
+.plate.lg::before { font-size: 10px; padding: 0 4px 4px }
+.plate.lg span { padding: 7px 10px 6px }
+
+/* Стан терміну */
+.badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 3px 8px; white-space: nowrap }
+.badge.late { background: var(--red); color: #fff }
+.badge.urgent { background: var(--red-soft); color: var(--red) }
+.badge.warn { background: var(--amber-soft); color: var(--amber) }
+.badge.ok { background: var(--green-soft); color: var(--green) }
+.badge.none { background: var(--surface2); color: var(--muted); border: 1px solid var(--line) }
+.badge.st-free { background: var(--green-soft); color: var(--green) }
+.badge.st-trip { background: var(--blue-soft); color: var(--blue) }
+.badge.st-repair { background: var(--amber-soft); color: var(--amber) }
+
+/* Показники */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px }
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: inherit }
+.stat .k { font-size: 13px; color: var(--muted) }
+.stat .v { font-family: var(--f-display); font-weight: 800; font-size: 24px; letter-spacing: -.01em; font-variant-numeric: tabular-nums }
+.stat .s { font-size: 12.5px; color: var(--muted) }
+.stat.alert { border-color: var(--red); }
+.stat.alert .v { color: var(--red) }
+
+/* Смужки витрат */
+.bars { display: flex; flex-direction: column; gap: 12px }
+.bar-row { display: flex; flex-direction: column; gap: 5px; font-size: 14px }
+.bar-row .top { display: flex; justify-content: space-between; gap: 10px }
+.bar-row .top b { font-variant-numeric: tabular-nums; white-space: nowrap }
+.bar { height: 8px; background: var(--surface2); border-radius: 4px; overflow: hidden }
+.bar i { display: block; height: 100%; background: var(--brand); border-radius: 4px }
+
+/* Таблиця */
+.tbl-box { overflow-x: auto }
+table.tbl { width: 100%; border-collapse: collapse; font-size: 14px }
+.tbl th { text-align: left; font-size: 12px; color: var(--muted); font-weight: 600; padding: 8px 10px; white-space: nowrap }
+.tbl td { padding: 10px; border-top: 1px solid var(--line); vertical-align: top }
+.tbl td.num, .tbl th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap }
+.tbl tr.click { cursor: pointer }
+.tbl tr.click:hover td { background: var(--surface2) }
+
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center }
+.toolbar select { width: auto; min-width: 150px; flex: 1 1 160px }
+.month-nav { display: inline-flex; align-items: center; gap: 6px }
+.month-nav b { font-family: var(--f-display); font-weight: 700; font-size: 15px; min-width: 140px; text-align: center }
+
+/* ---------- Шторка (форма поверх) ---------- */
+.sheet-bg { position: fixed; inset: 0; z-index: 20; background: rgba(15, 10, 5, .45); display: flex; align-items: flex-end; justify-content: center }
+.sheet { background: var(--surface); width: 100%; max-width: 620px; max-height: 92dvh; overflow-y: auto; border-radius: 18px 18px 0 0; padding: 20px max(18px, env(safe-area-inset-right, 0px)) calc(20px + env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px)); display: flex; flex-direction: column; gap: 16px; box-shadow: var(--shadow) }
+.sheet h2 { font-family: var(--f-display); font-weight: 800; font-size: 20px }
+@media (min-width: 700px) { .sheet-bg { align-items: center } .sheet { border-radius: 18px } }
+
+/* Кнопка «+» */
+.fab { position: fixed; right: max(18px, env(safe-area-inset-right, 0px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 6; display: inline-flex; align-items: center; gap: 8px; min-height: 54px; padding: 0 20px 0 16px; border-radius: 28px; border: 0; background: var(--brand); color: var(--brand-ink); font: inherit; font-weight: 700; font-size: 15px; box-shadow: var(--shadow); cursor: pointer }
+.fab span:first-child { font-size: 24px; line-height: 1 }
+
+/* ---------- Вхід ---------- */
+.login { min-height: 100dvh; display: grid; place-items: center; padding: 24px 16px; background:
+  radial-gradient(1200px 500px at 50% -10%, var(--brand-soft), transparent 70%), var(--bg) }
+.login-card { width: 100%; max-width: 380px; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 26px; display: flex; flex-direction: column; gap: 14px; box-shadow: var(--shadow) }
+.login-card .logo { font-size: 26px }
+.login-card p { margin: 0; color: var(--muted) }
+
+/* Тема */
+.theme-seg { display: inline-grid; grid-template-columns: repeat(3, auto); gap: 2px; background: var(--surface2); border: 1px solid var(--line); border-radius: 8px; padding: 2px }
+.theme-seg button { border: 0; background: none; border-radius: 6px; padding: 4px 10px; font: inherit; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; min-height: 30px }
+.theme-seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 3px rgba(0, 0, 0, .15) }
+.theme-seg .t-short { display: none }
+
+@media (max-width: 560px) {
+  .page-head h1 { font-size: 22px }
+  .av-btn .me-name { display: none }
+  .card { padding: 16px }
+  .kv { grid-template-columns: minmax(0, 1fr) }
+  .kv dt { margin-top: 4px }
+  .fab .fab-text { display: none }
+  .fab { padding: 0; width: 56px; justify-content: center }
+}
