@@ -52,6 +52,14 @@ export function VehicleSheet({ vehicle, kind: kind0, onClose }: { vehicle?: Vehi
     if (!vehicle) router.push(`/fleet/${res.data.id}`);
   }
 
+  async function remove() {
+    const { error } = await supabase.from("vehicles").delete().eq("id", vehicle!.id);
+    if (error) return setErr(dbError(error));
+    await reload();
+    onClose();
+    router.push("/fleet");
+  }
+
   async function archive() {
     const { error } = await supabase.from("vehicles").update({ archived: !vehicle!.archived }).eq("id", vehicle!.id);
     if (error) return setErr(dbError(error));
@@ -134,6 +142,7 @@ export function VehicleSheet({ vehicle, kind: kind0, onClose }: { vehicle?: Vehi
         {err && <div className="error" role="alert">{err}</div>}
         <div className="row end">
           {vehicle && <ConfirmButton label={vehicle.archived ? "Повернути з архіву" : "В архів"} onConfirm={archive} className="btn ghost sm" />}
+          {vehicle?.id && <ConfirmButton label="Видалити" onConfirm={remove} />}
           <button type="button" className="btn ghost" onClick={onClose}>Скасувати</button>
           <button type="submit" className="btn primary" disabled={busy}>{busy ? "Зберігаю…" : "Зберегти"}</button>
         </div>

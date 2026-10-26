@@ -86,6 +86,14 @@ function FirmSheet({ firm, onClose }: { firm: Partial<Firm>; onClose: () => void
     if (error) return setErr(dbError(error));
     await reload(); onClose();
   }
+  async function remove() {
+    const { error } = await supabase.from("firms").delete().eq("id", firm!.id);
+    if (error) return setErr(dbError(error));
+    await reload();
+    onClose();
+    
+  }
+
   async function archive() {
     const { error } = await supabase.from("firms").update({ archived: !firm.archived }).eq("id", firm.id!);
     if (error) return setErr(dbError(error));
@@ -118,6 +126,7 @@ function FirmSheet({ firm, onClose }: { firm: Partial<Firm>; onClose: () => void
         {err && <div className="error" role="alert">{err}</div>}
         <div className="row end">
           {firm.id && <ConfirmButton label={firm.archived ? "Повернути з архіву" : "В архів"} onConfirm={archive} className="btn ghost sm" />}
+          {firm?.id && <ConfirmButton label="Видалити" onConfirm={remove} />}
           <button type="button" className="btn ghost" onClick={onClose}>Скасувати</button>
           <button type="submit" className="btn primary">Зберегти</button>
         </div>

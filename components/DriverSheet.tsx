@@ -44,6 +44,14 @@ export function DriverSheet({ driver, onClose }: { driver?: Driver; onClose: () 
     if (!driver) router.push(`/drivers/${res.data.id}`);
   }
 
+  async function remove() {
+    const { error } = await supabase.from("drivers").delete().eq("id", driver!.id);
+    if (error) return setErr(dbError(error));
+    await reload();
+    onClose();
+    router.push("/drivers");
+  }
+
   async function archive() {
     const { error } = await supabase.from("drivers").update({ archived: !driver!.archived }).eq("id", driver!.id);
     if (error) return setErr(dbError(error));
@@ -103,6 +111,7 @@ export function DriverSheet({ driver, onClose }: { driver?: Driver; onClose: () 
         {err && <div className="error" role="alert">{err}</div>}
         <div className="row end">
           {driver && <ConfirmButton label={driver.archived ? "Повернути з архіву" : "Звільнений, в архів"} onConfirm={archive} className="btn ghost sm" />}
+          {driver?.id && <ConfirmButton label="Видалити" onConfirm={remove} />}
           <button type="button" className="btn ghost" onClick={onClose}>Скасувати</button>
           <button type="submit" className="btn primary" disabled={busy}>{busy ? "Зберігаю…" : "Зберегти"}</button>
         </div>
