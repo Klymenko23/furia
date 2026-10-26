@@ -7,6 +7,7 @@ import { DocList } from "@/components/Docs";
 import { ExpenseRows, sumByCurrency, useExpenses } from "@/components/Expenses";
 import { Plate, StatusBadge } from "@/components/ui";
 import { VehicleSheet } from "@/components/VehicleSheet";
+import { LivePosition } from "@/components/Wialon";
 import { catLabel, KIND_NAME } from "@/lib/constants";
 import { fmtPlate, monthStart, money, moneyMulti, vehicleTitle } from "@/lib/utils";
 
@@ -58,12 +59,14 @@ export default function VehiclePage({ params }: { params: Promise<{ id: string }
             <dt>Пробіг</dt><dd>{v.mileage ? `${v.mileage.toLocaleString("uk-UA")} км` : "—"}</dd>
             <dt>Фірма</dt><dd>{firm?.name ?? "—"}</dd>
             <dt>VIN</dt><dd style={{ fontFamily: "var(--f-mono)", fontSize: 13 }}>{v.vin || "—"}</dd>
-            {v.kind === "tractor" && <><dt>Wialon</dt><dd>{v.wialon_unit || "не підключено"}</dd></>}
+            {v.kind === "tractor" && <><dt>Wialon</dt><dd>{v.wialon_unit ? "привʼязано" : "не привʼязано: оберіть обʼєкт у «Редагувати»"}</dd></>}
             {v.note && <><dt>Нотатки</dt><dd style={{ whiteSpace: "pre-line", fontWeight: 400 }}>{v.note}</dd></>}
           </dl>
         </section>
         <DocList subject={{ kind: v.kind, id: v.id }} />
       </div>
+
+      {v.kind === "tractor" && v.wialon_unit && <LivePosition unitId={v.wialon_unit} />}
 
       <section className="card" aria-labelledby="h-exp">
         <div className="sec-head">

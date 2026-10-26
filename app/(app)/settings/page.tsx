@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useData } from "@/components/DataProvider";
 import { DocList } from "@/components/Docs";
+import { WialonSettings } from "@/components/Wialon";
 import { ConfirmButton, Field, Sheet, dbError } from "@/components/ui";
 import { catLabel, CATEGORIES, CURRENCIES, FIRM_KIND_NAME, ROLE_NAME, TAX_MODE_NAME } from "@/lib/constants";
 import { initials, money, parseNum } from "@/lib/utils";
@@ -16,10 +17,11 @@ export default function SettingsPage() {
       <div className="page-head">
         <div>
           <h1>Налаштування</h1>
-          <p>{isOwner ? "Фірми, добові, постачальники й доступи." : "Змінювати налаштування може лише власник."}</p>
+          <p>{isOwner ? "Фірми, Wialon, добові, постачальники й доступи." : "Змінювати налаштування може лише власник."}</p>
         </div>
       </div>
       <Firms />
+      <WialonSettings />
       <div className="cols">
         <DailyRates />
         <Suppliers />

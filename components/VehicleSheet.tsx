@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useData } from "./DataProvider";
 import { ConfirmButton, Field, Sheet, dbError } from "./ui";
+import { UnitPicker } from "./Wialon";
 import { BODY_TYPES, KIND_NAME, STATUS_NAME } from "@/lib/constants";
 import { fmtPlate, parseNum } from "@/lib/utils";
 import type { Vehicle, VehicleKind, VehicleStatus } from "@/lib/types";
@@ -124,9 +125,7 @@ export function VehicleSheet({ vehicle, kind: kind0, onClose }: { vehicle?: Vehi
             <input id="v-vin" autoCapitalize="characters" value={vin} onChange={(e) => setVin(e.target.value)} />
           </Field>
           {kind === "tractor" && (
-            <Field label="Обʼєкт у Wialon" htmlFor="v-wialon" hint="Назва машини в Wialon. Підключимо на наступному етапі">
-              <input id="v-wialon" value={wialon} onChange={(e) => setWialon(e.target.value)} />
-            </Field>
+            <UnitPicker value={wialon} onChange={setWialon} />
           )}
           <Field label="Нотатки" htmlFor="v-note" wide>
             <textarea id="v-note" value={note} onChange={(e) => setNote(e.target.value)} />
