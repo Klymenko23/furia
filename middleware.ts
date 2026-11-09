@@ -38,5 +38,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|geo/|.*\\.(?:png|jpg|svg|webp)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|icon.svg|manifest.webmanifest|sw.js|api/cron|geo/|.*\\.(?:png|jpg|svg|webp)$).*)"],
 };
